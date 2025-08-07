@@ -12,7 +12,7 @@ using fraude_pix.Data;
 namespace fraude_pix.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250807184538_InitialCreate")]
+    [Migration("20250807225952_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
