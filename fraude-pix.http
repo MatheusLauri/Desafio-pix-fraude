@@ -1,0 +1,6 @@
+@fraude_pix_HostAddress = http://localhost:5243
+
+GET {{fraude_pix_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
