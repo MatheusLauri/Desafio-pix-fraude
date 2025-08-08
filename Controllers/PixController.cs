@@ -1,7 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using fraude_pix.Dtos;
 using fraude_pix.Models;
-using fraude_pix.Data;
-using Microsoft.EntityFrameworkCore;
+using fraude_pix.Services;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace fraude_pix.Controllers
 {
@@ -9,59 +13,101 @@ namespace fraude_pix.Controllers
     [Route("api/[controller]")]
     public class PixController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly TransactionService _transactionService;
 
-        public PixController(AppDbContext context)
+        public PixController(TransactionService transactionService)
         {
-            _context = context;
+            _transactionService = transactionService;
         }
 
-        // POST: api/pix
+        // POST api/pix
         [HttpPost]
-        public async Task<IActionResult> CreateTransaction([FromBody] TransactionModel transaction)
+        public async Task<IActionResult> CreateTransaction([FromBody] TransactionDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            if (dto == null)
+                return BadRequest(new { errors = new[] { "O corpo da requisição não pode ser nulo." } });
 
-            transaction.Timestamp = DateTime.UtcNow;
-            _context.Transactions.Add(transaction);
-            await _context.SaveChangesAsync();
+            try
+            {
+                var transaction = await _transactionService.CreateTransactionAsync(dto);
+                if (transaction == null)
+                {
+                    // Foi detectada fraude e não salvou como transação
+                    return BadRequest(new
+                    {
+                        message = "Transação suspeita de fraude e não permitida."
+                    });
+                }
 
-            return CreatedAtAction(nameof(GetTransactionById), new { id = transaction.Id }, transaction);
+                return Ok(new
+                {
+                    message = "Transação criada com sucesso!",
+                    transaction
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { errors = ex.Message.Split(" | ") });
+            }
+            catch (Exception ex)
+            {
+                // Log ex aqui se quiser
+                return StatusCode(500, new { message = "Erro interno no servidor", details = ex.Message });
+            }
         }
 
-        // GET: api/pix
+        // GET api/pix
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TransactionModel>>> GetAllTransactions()
         {
-            return await _context.Transactions.ToListAsync();
+            var transactions = await _transactionService.GetAllTransactionsAsync();
+            return Ok(transactions);
         }
 
-        // GET: api/pix/{id}
-        [HttpGet("{id}")]
-        public async Task<ActionResult<TransactionModel>> GetTransactionById(Guid id)
+        // GET api/pix/fraudes
+        [HttpGet("fraudes")]
+        public async Task<ActionResult<IEnumerable<FraudLog>>> GetAllFrauds()
         {
-            var transaction = await _context.Transactions.FindAsync(id);
-
-            if (transaction == null)
-                return NotFound();
-
-            return transaction;
+            var frauds = await _transactionService.GetAllFraudsAsync();
+            return Ok(frauds);
         }
 
-        // DELETE: api/pix/{id}
+        // GET api/pix/{id}
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetTransactionById(Guid id)
+        {
+            var transaction = await _transactionService.GetTransactionByIdAsync(id);
+            if (transaction == null)
+                return NotFound(new { message = "Transação não encontrada." });
+
+            return Ok(transaction);
+        }
+
+        [HttpGet("fraudes/{id}")]
+        public async Task<IActionResult> GetFraudById(Guid id)
+        {
+            var fraud = await _transactionService.GetFraudLogAsync(id);
+            if (fraud == null)
+                return NotFound(new { message = "Registro de fraude não encontrado." });
+            return Ok(fraud);
+        }
+
+        // DELETE api/pix/{id}
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTransaction(Guid id)
         {
-            var transaction = await _context.Transactions.FindAsync(id);
+            try
+            {
+                var success = await _transactionService.DeleteTransactionAsync(id);
+                if (!success)
+                    return NotFound(new { message = "Transação não encontrada." });
 
-            if (transaction == null)
-                return NotFound();
-
-            _context.Transactions.Remove(transaction);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }

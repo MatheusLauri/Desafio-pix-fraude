@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("fraude-pix")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1325305090151a94cd22cc60c445251effa847a2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+998ec02823a9aaf8ef70065ddff0cf24c2c129a8")]
 [assembly: System.Reflection.AssemblyProductAttribute("fraude-pix")]
 [assembly: System.Reflection.AssemblyTitleAttribute("fraude-pix")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

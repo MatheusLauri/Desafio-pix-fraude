@@ -11,10 +11,10 @@ services:
       - "5000:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__SqlServer: ${SQLSERVER_CONNECTION}
+      ConnectionStrings__SqlServer: "Server=host.docker.internal,1433;Database=fraude_pix;Trusted_Connection=True;" 
       RabbitMq__Host: rabbitmq
-      RabbitMq__User: ${RABBITMQ_USER}
-      RabbitMq__Password: ${RABBITMQ_PASSWORD}
+      RabbitMq__User: ${RABBITMQ_USER:-guest}
+      RabbitMq__Password: ${RABBITMQ_PASSWORD:-guest}
       Minio__Endpoint: ${MINIO_ENDPOINT}
       Minio__AccessKey: ${MINIO_ACCESS_KEY}
       Minio__SecretKey: ${MINIO_SECRET_KEY}
@@ -35,7 +35,6 @@ services:
     ports:
       - "1433:1433"
     environment:
-      SA_PASSWORD: ${SQLSERVER_PASSWORD}
       ACCEPT_EULA: "Y"
       MSSQL_PID: "Developer"
     volumes:
@@ -43,7 +42,7 @@ services:
     networks:
       - fraude-pix-network
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P $$SQLSERVER_PASSWORD -Q \"SELECT 1\""]
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P '' -Q \"SELECT 1\""]
       interval: 10s
       timeout: 5s
       retries: 10

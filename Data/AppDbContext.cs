@@ -7,6 +7,8 @@ namespace fraude_pix.Data
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-        public DbSet<TransactionModel> Transactions => Set<TransactionModel>(); 
+        public DbSet<TransactionModel> Transactions => Set<TransactionModel>();
+        public DbSet<FraudLog> FraudLogs { get; set; }
+
     }
 }
