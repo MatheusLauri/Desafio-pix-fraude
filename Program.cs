@@ -12,6 +12,8 @@ builder.Services.AddScoped<TransactionService>(); // <- injeção do service
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSingleton<RabbitMqProducer>();
+
 
 var app = builder.Build();
 

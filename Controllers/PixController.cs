@@ -4,8 +4,8 @@ using fraude_pix.Services;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace fraude_pix.Controllers
 {
@@ -20,7 +20,6 @@ namespace fraude_pix.Controllers
             _transactionService = transactionService;
         }
 
-        // POST api/pix
         [HttpPost]
         public async Task<IActionResult> CreateTransaction([FromBody] TransactionDto dto)
         {
@@ -32,7 +31,6 @@ namespace fraude_pix.Controllers
                 var transaction = await _transactionService.CreateTransactionAsync(dto);
                 if (transaction == null)
                 {
-                    // Foi detectada fraude e não salvou como transação
                     return BadRequest(new
                     {
                         message = "Transação suspeita de fraude e não permitida."
@@ -51,12 +49,10 @@ namespace fraude_pix.Controllers
             }
             catch (Exception ex)
             {
-                // Log ex aqui se quiser
                 return StatusCode(500, new { message = "Erro interno no servidor", details = ex.Message });
             }
         }
 
-        // GET api/pix
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TransactionModel>>> GetAllTransactions()
         {
@@ -64,7 +60,6 @@ namespace fraude_pix.Controllers
             return Ok(transactions);
         }
 
-        // GET api/pix/fraudes
         [HttpGet("fraudes")]
         public async Task<ActionResult<IEnumerable<FraudLog>>> GetAllFrauds()
         {
@@ -72,7 +67,6 @@ namespace fraude_pix.Controllers
             return Ok(frauds);
         }
 
-        // GET api/pix/{id}
         [HttpGet("{id}")]
         public async Task<IActionResult> GetTransactionById(Guid id)
         {
@@ -92,7 +86,6 @@ namespace fraude_pix.Controllers
             return Ok(fraud);
         }
 
-        // DELETE api/pix/{id}
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTransaction(Guid id)
         {
