@@ -2,10 +2,6 @@
 using fraude_pix.Models;
 using fraude_pix.Services;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace fraude_pix.Controllers
 {
@@ -28,19 +24,17 @@ namespace fraude_pix.Controllers
 
             try
             {
-                var transaction = await _transactionService.CreateTransactionAsync(dto);
-                if (transaction == null)
-                {
-                    return BadRequest(new
-                    {
-                        message = "Transação suspeita de fraude e não permitida."
-                    });
-                }
+                var (transaction, fraudLog) = await _transactionService.CreateTransactionAsync(dto);
 
-                return Ok(new
+                var message = transaction.IsFraud
+                    ? "Transação criada e marcada como fraude."
+                    : "Transação criada com sucesso.";
+
+                return CreatedAtAction(nameof(GetTransactionById), new { id = transaction.Id }, new
                 {
-                    message = "Transação criada com sucesso!",
-                    transaction
+                    message,
+                    transaction,
+                    fraud = fraudLog == null ? null : new { fraudLog.Id, fraudLog.FraudReason, fraudLog.LoggedAt }
                 });
             }
             catch (ArgumentException ex)
@@ -49,58 +43,50 @@ namespace fraude_pix.Controllers
             }
             catch (Exception ex)
             {
+                // ideal: registrar em um logger antes de devolver
                 return StatusCode(500, new { message = "Erro interno no servidor", details = ex.Message });
             }
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TransactionModel>>> GetAllTransactions()
-        {
-            var transactions = await _transactionService.GetAllTransactionsAsync();
-            return Ok(transactions);
-        }
+        public async Task<IActionResult> GetAllTransactions()
+            => Ok(await _transactionService.GetAllTransactionsAsync());
 
         [HttpGet("fraudes")]
-        public async Task<ActionResult<IEnumerable<FraudLog>>> GetAllFrauds()
-        {
-            var frauds = await _transactionService.GetAllFraudsAsync();
-            return Ok(frauds);
-        }
+        public async Task<IActionResult> GetAllFrauds()
+            => Ok(await _transactionService.GetAllFraudsAsync());
 
-        [HttpGet("{id}")]
+        [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetTransactionById(Guid id)
         {
-            var transaction = await _transactionService.GetTransactionByIdAsync(id);
-            if (transaction == null)
-                return NotFound(new { message = "Transação não encontrada." });
-
-            return Ok(transaction);
+            var tx = await _transactionService.GetTransactionByIdAsync(id);
+            return tx == null ? NotFound(new { message = "Transação não encontrada." }) : Ok(tx);
         }
 
-        [HttpGet("fraudes/{id}")]
+        [HttpGet("fraudes/{id:guid}")]
         public async Task<IActionResult> GetFraudById(Guid id)
         {
             var fraud = await _transactionService.GetFraudLogAsync(id);
-            if (fraud == null)
-                return NotFound(new { message = "Registro de fraude não encontrado." });
-            return Ok(fraud);
+            return fraud == null ? NotFound(new { message = "Registro de fraude não encontrado." }) : Ok(fraud);
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:guid}")]
         public async Task<IActionResult> DeleteTransaction(Guid id)
         {
             try
             {
-                var success = await _transactionService.DeleteTransactionAsync(id);
-                if (!success)
-                    return NotFound(new { message = "Transação não encontrada." });
-
-                return NoContent();
+                var ok = await _transactionService.DeleteTransactionAsync(id);
+                return ok ? NoContent() : NotFound(new { message = "Transação não encontrada." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return StatusCode(500, new { message = "Erro interno", details = ex.Message });
             }
         }
     }
 }
+    

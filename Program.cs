@@ -13,6 +13,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<RabbitMqProducer>();
+builder.Services.AddSingleton<IRabbitMqProducer, RabbitMqProducer>();
 
 
 var app = builder.Build();

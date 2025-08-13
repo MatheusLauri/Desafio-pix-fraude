@@ -1,42 +1,54 @@
 ﻿using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Configuration;
 using RabbitMQ.Client;
 
 namespace fraude_pix.Services
 {
-    public class RabbitMqProducer
+    public class RabbitMqProducer : IRabbitMqProducer
     {
-        private readonly IConfiguration _configuration;
+        private readonly ConnectionFactory _factory;
 
-        public RabbitMqProducer(IConfiguration configuration)
+        public RabbitMqProducer()
         {
-            _configuration = configuration;
+            _factory = new ConnectionFactory
+            {
+                HostName = "rabbitmq", // ou "rabbitmq" se estiver rodando no docker-compose
+                UserName = "guest",
+                Password = "guest"
+            };
         }
 
-        public void Publish<T>(T message)
+        public Task PublishAsync(object message)
         {
-            var factory = new ConnectionFactory()
-            {
-                HostName = _configuration["RabbitMQ:Host"],
-                Port = int.Parse(_configuration["RabbitMQ:Port"]),
-                UserName = _configuration["RabbitMQ:Username"],
-                Password = _configuration["RabbitMQ:Password"]
-            };
-
-            using var connection = factory.CreateConnection();
+            using var connection = _factory.CreateConnection();
             using var channel = connection.CreateModel();
 
-            var queueName = _configuration["RabbitMQ:QueueName"];
-            channel.QueueDeclare(queue: queueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
+            string queueName = "fraude_pix_queue";
 
+            // Garantir que a fila exista
+            channel.QueueDeclare(
+                queue: queueName,
+                durable: true,
+                exclusive: false,
+                autoDelete: false,
+                arguments: null
+            );
+
+            // Serializar a mensagem para JSON
             var json = JsonSerializer.Serialize(message);
             var body = Encoding.UTF8.GetBytes(json);
 
-            var properties = channel.CreateBasicProperties();
-            properties.Persistent = true;
+            // Publicar a mensagem na fila
+            channel.BasicPublish(
+                exchange: "",
+                routingKey: queueName,
+                basicProperties: null,
+                body: body
+            );
 
-            channel.BasicPublish(exchange: "", routingKey: queueName, basicProperties: properties, body: body);
+            Console.WriteLine($"[Producer] Mensagem publicada na fila '{queueName}': {json}");
+
+            return Task.CompletedTask;
         }
     }
 }
