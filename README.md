@@ -88,12 +88,6 @@ Exemplo de body:
 
 Se a transação for considerada suspeita, o consumidor registrará a fraude no console.
 
-## 📷 Demonstração
-
-Exemplo de mensagem detectada como fraude pelo consumer:
-
-*(Adicione aqui prints ou exemplos de saída do console)*
-
 ## 🛠️ Próximos Passos
 
 - Implementar testes automatizados
